@@ -6,48 +6,4 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
-    container:
-      image: zmkfirmware/zmk-build-arm:stable
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install west (FIX PEP 668)
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install west
-
-      - name: Init ZMK
-        run: |
-          . venv/bin/activate
-          west init zmk
-          cd zmk
-          west update
-          west zephyr-export
-
-      - name: Copy config
-        run: |
-          cp -r config zmk/app/
-
-      - name: Build LEFT
-        run: |
-          . venv/bin/activate
-          cd zmk/app
-          west build -b nice_nano_v2 -- -DSHIELD=corne_left
-
-      - name: Build RIGHT
-        run: |
-          . venv/bin/activate
-          cd zmk/app
-          west build -b nice_nano_v2 -- -DSHIELD=corne_right
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware
-          path: |
-            zmk/app/build/zephyr/zmk.uf2
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
