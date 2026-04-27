@@ -1,4 +1,4 @@
-name: Build ZMK Firmware
+name: Build ZMK Firmware (Stable)
 
 on:
   push:
@@ -6,6 +6,51 @@ on:
 
 jobs:
   build:
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
-    with:
-      config_path: config
+    runs-on: ubuntu-latest
+
+    container:
+      image: zmkfirmware/zmk-build-arm:stable
+
+    strategy:
+      matrix:
+        include:
+          - board: nice_nano_v2
+            shield: corne_left
+          - board: nice_nano_v2
+            shield: corne_right
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y git cmake ninja-build gperf \
+          ccache dfu-util device-tree-compiler wget \
+          python3-dev python3-pip python3-setuptools python3-wheel xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev
+
+      - name: Install west
+        run: pip3 install west
+
+      - name: Init workspace
+        run: |
+          west init zmk-workspace
+          cd zmk-workspace
+          west update
+          west zephyr-export
+
+      - name: Copy config
+        run: |
+          cp -r config zmk-workspace/zmk/app/
+
+      - name: Build firmware
+        run: |
+          cd zmk-workspace/zmk/app
+          west build -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }}
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.shield }}
+          path: zmk-workspace/zmk/app/build/zephyr/zmk.uf2
